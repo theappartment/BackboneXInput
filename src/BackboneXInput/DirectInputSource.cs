@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.ComponentModel;
 using BackboneXInput.Core;
 using Vortice.DirectInput;
 
@@ -6,11 +7,22 @@ namespace BackboneXInput;
 
 internal sealed class DirectInputSource : IDisposable
 {
-    private readonly IDirectInput8 input = DInput.DirectInput8Create();
+    private readonly IDirectInput8 input;
+    private readonly IntPtr inputWindow;
+    private bool disposed;
     private IDirectInputDevice8? device;
     public DeviceInstance? Selected { get; private set; }
     public string[] Objects { get; private set; } = [];
     public static readonly string[] AxisNames = ["X", "Y", "Z", "RotationX", "RotationY", "RotationZ", "Slider0", "Slider1"];
+
+    public DirectInputSource()
+    {
+        // DirectInput requires a top-level HWND owned by this process, even in background mode.
+        inputWindow = CreateWindowEx(0, "STATIC", "BackboneXInput Input", 0, 0, 0, 1, 1, IntPtr.Zero, IntPtr.Zero, GetModuleHandle(null), IntPtr.Zero);
+        if (inputWindow == IntPtr.Zero) throw new Win32Exception(Marshal.GetLastWin32Error());
+        try { input = DInput.DirectInput8Create(); }
+        catch { DestroyWindow(inputWindow); throw; }
+    }
 
     public IList<DeviceInstance> Enumerate() => input.GetDevices(DeviceClass.GameControl, DeviceEnumerationFlags.AttachedOnly);
 
@@ -29,7 +41,7 @@ internal sealed class DirectInputSource : IDisposable
         try
         {
             opened.SetDataFormat<RawJoystickState>().CheckError();
-            opened.SetCooperativeLevel(GetDesktopWindow(), CooperativeLevel.Background | CooperativeLevel.NonExclusive).CheckError();
+            opened.SetCooperativeLevel(inputWindow, CooperativeLevel.Background | CooperativeLevel.NonExclusive).CheckError();
             foreach (var obj in opened.GetObjects(DeviceObjectTypeFlags.Axis))
             {
                 var properties = opened.GetObjectPropertiesById(obj.ObjectId);
@@ -70,6 +82,15 @@ internal sealed class DirectInputSource : IDisposable
         if (device is not null) { device.Unacquire(); device.Dispose(); device = null; }
         Selected = null;
     }
-    public void Dispose() { Disconnect(); input.Dispose(); }
-    [DllImport("user32.dll")] private static extern IntPtr GetDesktopWindow();
+    public void Dispose()
+    {
+        if (disposed) return;
+        disposed = true;
+        try { Disconnect(); }
+        finally { try { input.Dispose(); } finally { DestroyWindow(inputWindow); } }
+    }
+    [DllImport("user32.dll", EntryPoint = "CreateWindowExW", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern IntPtr CreateWindowEx(uint exStyle, string className, string windowName, uint style, int x, int y, int width, int height, IntPtr parent, IntPtr menu, IntPtr instance, IntPtr parameter);
+    [DllImport("user32.dll")] private static extern bool DestroyWindow(IntPtr window);
+    [DllImport("kernel32.dll", EntryPoint = "GetModuleHandleW", CharSet = CharSet.Unicode)] private static extern IntPtr GetModuleHandle(string? name);
 }

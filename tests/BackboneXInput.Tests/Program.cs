@@ -61,6 +61,43 @@ using (var session = new OutputSession<XboxReport>(() => ++attempts == 1 ? throw
     session.Send(XboxReport.Neutral);
     Assert(attempts == 2, "failed target creation can retry");
 }
+RawState Rest() => new(Enumerable.Repeat(32768, 8).ToArray(), new bool[128], [-1, -1, -1, -1]);
+void Feed(MappingCapture capture, RawState state, double from, double duration)
+{
+    for (var i = 0; i <= 10; i++) capture.Push(state, from + duration * i / 10);
+}
+MappingCapture Ready(Control control)
+{
+    var c = new MappingCapture(control); c.Start(0); Feed(c, Rest(), 0, 1); return c;
+}
+var gui = Ready(Control.A);
+Assert(gui.Stage == CaptureStage.Positive, "guided neutral phase advances");
+var aState = Rest(); aState.Buttons[3] = true; Feed(gui, aState, 1, 4);
+Assert(gui.Stage == CaptureStage.Review && gui.Result?.Index == 3 && gui.Result.Kind == InputKind.Button, "guided button detection");
+gui.Push(Rest(), 100); Assert(gui.Result?.Index == 3, "review preserves detected binding");
+gui.Start(200); Assert(gui.Stage == CaptureStage.Neutral && gui.Result is null, "retry clears candidate");
+var multi = Ready(Control.A); var multiState = Rest(); multiState.Buttons[3] = true; multiState.Buttons[4] = true; Feed(multi, multiState, 1, 4);
+Assert(multi.Stage == CaptureStage.Failed && multi.Result is null, "ambiguous simultaneous buttons rejected");
+var held = new MappingCapture(Control.A); held.Start(0); Feed(held, aState, 0, 1);
+Assert(held.Stage == CaptureStage.Failed, "held button at neutral rejected");
+var hat = Ready(Control.Up); var hatState = Rest(); hatState.Pov[0] = 4500; Feed(hat, hatState, 1, 4);
+Assert(hat.Stage == CaptureStage.Failed, "guided diagonal rejected");
+var cardinal = Ready(Control.Left); hatState = Rest(); hatState.Pov[0] = 27000; Feed(cardinal, hatState, 1, 4);
+Assert(cardinal.Result?.PovAngle == 27000, "guided cardinal POV detected");
+var analogTrigger = Ready(Control.LT); var triggerState = Rest(); triggerState.Axes[5] = 0; triggerState.Buttons[7] = true; Feed(analogTrigger, triggerState, 1, 4);
+Assert(analogTrigger.Result?.Kind == InputKind.Axis && analogTrigger.Result.Index == 5 && analogTrigger.Result.Full == 0, "analog trigger preferred over digital event");
+var digitalTrigger = Ready(Control.RT); Feed(digitalTrigger, aState, 1, 4);
+Assert(digitalTrigger.Result?.Kind == InputKind.Button, "guided digital trigger fallback");
+var stickCapture = Ready(Control.LeftX); var right = Rest(); right.Axes[2] = 65535; Feed(stickCapture, right, 1, 4);
+Assert(stickCapture.Stage == CaptureStage.Opposite, "stick asks opposite direction separately");
+var left = Rest(); left.Axes[2] = 0; Feed(stickCapture, left, 5, 4);
+Assert(stickCapture.Result?.Index == 2 && stickCapture.Result.Center == 32768 && !stickCapture.Result.Invert, "guided stick calibration");
+var inverted = Ready(Control.LeftY); Feed(inverted, left, 1, 4); Feed(inverted, right, 5, 4);
+Assert(inverted.Result?.Invert == true && Mapping.Stick(0, inverted.Result) == 1, "up direction inferred for inverted Y axis");
+var wrong = Ready(Control.RightX); Feed(wrong, right, 1, 4); Feed(wrong, right, 5, 4);
+Assert(wrong.Stage == CaptureStage.Failed, "same stick direction twice rejected");
+var empty = Ready(Control.A); Feed(empty, Rest(), 1, 4);
+Assert(empty.Stage == CaptureStage.Failed, "no input detected prompts retry");
 Console.WriteLine($"{count} tests passed.");
 
 sealed class FakeOutput(Action dispose) : IVirtualOutput<XboxReport>

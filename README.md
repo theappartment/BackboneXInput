@@ -1,6 +1,6 @@
 # BackboneXInput
 
-[Scarica il pacchetto Windows x64](https://github.com/theappartment/BackboneXInput/releases/tag/v0.1.0) oppure consulta [tutte le release](https://github.com/theappartment/BackboneXInput/releases). La prima release e preliminare: build e test automatici verificati, prova con hardware/driver Windows ancora necessaria.
+[Scarica il pacchetto Windows x64 con mapping guidato](https://github.com/theappartment/BackboneXInput/releases/tag/v0.2.0) oppure consulta [tutte le release](https://github.com/theappartment/BackboneXInput/releases). La release e preliminare: build e test automatici verificati, prova con hardware/driver/interfaccia Windows ancora necessaria.
 
 App Windows C#/.NET con icona vicino all'orologio e strumenti console: legge il controller gia riconosciuto da `joy.cpl` con DirectInput e trasmette i comandi a un Xbox 360 virtuale tramite ViGEmBus. Non installa driver, non modifica HidHide e non nasconde dispositivi. Nessun VID/PID o mapping Backbone e preimpostato.
 
@@ -28,13 +28,13 @@ I driver non sono inclusi nel pacchetto e non vengono scaricati o installati dal
 
 1. Estrai il pacchetto completo in una cartella stabile e installa manualmente ViGEmBus come indicato sopra.
 2. Apri `AVVIA-AUTOMATICO.cmd` oppure `windows-x64\BackboneXInput.Tray.exe`. Compare un'icona nella zona dell'orologio; Windows potrebbe mostrarla nel menu delle icone nascoste.
-3. Con il tasto destro sull'icona apri **Mapping Wizard** e completa il mapping una volta. Seleziona prima il controller dal menu se necessario. Gli strumenti si aprono in una console: premi Invio alla fine per chiuderla. Il bridge riprende automaticamente e rilegge il file aggiornato.
+3. Con il tasto destro sull'icona apri **Mapping guidato**, oppure fai doppio clic sull'icona. La nuova finestra ti accompagna passo per passo; puoi aprirla direttamente con `MAPPING-GUIDATO.cmd` se l'app non e gia aperta. Seleziona il Backbone nell'elenco in alto. Alla chiusura il bridge riprende automaticamente e rilegge il file aggiornato. Monitor e diagnostica restano strumenti console: premi Invio alla fine per chiuderli.
 4. Nel menu attiva **Avvia con Windows**. L'opzione e inizialmente disattivata: registra soltanto l'avvio di questa app per l'utente corrente, senza amministratore. Non installa un servizio.
 5. Ai successivi accessi a Windows l'app parte senza console e resta in attesa. Quando colleghi il Backbone, il controllo ogni secondo lo rileva e crea l'Xbox virtuale al primo stato valido. Quando lo scolleghi, invia lo stato neutro, rimuove l'Xbox virtuale e torna in attesa. Non occorre aprire `joy.cpl`.
 
 L'avvio e al **login dell'utente**, non prima del login o sul solo evento USB con app chiusa. Windows puo ritardare le app di avvio. Se non parte, controlla Impostazioni > App > Avvio. Usa **Esci** dal menu per fermarla fino al prossimo accesso; disattiva **Avvia con Windows** per eliminare l'avvio automatico. Se sposti la cartella, riattiva l'opzione dal nuovo eseguibile. Una mappatura mancante/incompleta o un driver non disponibile appare come stato di errore nel menu; l'app riprova ogni cinque secondi e registra il dettaglio nei log.
 
-Il menu include monitor, selezione, wizard, diagnostica e apertura log. Durante uno strumento console, il bridge automatico e sospeso fino alla chiusura della console per consentire configurazione e lettura senza conflitti. Non lanciare contemporaneamente `run` dal vecchio menu: il mutex blocca il secondo bridge.
+Il menu include monitor, selezione, mapping guidato, diagnostica e apertura log. Durante il mapping e gli strumenti console, il bridge automatico e sospeso fino alla loro chiusura per consentire configurazione e lettura senza conflitti. Non lanciare contemporaneamente `run` dal vecchio menu: il mutex blocca il secondo bridge.
 
 L'icona usa [NotifyIcon di Windows Forms](https://learn.microsoft.com/en-us/dotnet/desktop/winforms/controls/notifyicon-component-windows-forms). L'opzione di avvio usa il valore `BackboneXInput` sotto `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, tra i [meccanismi di avvio documentati da Microsoft](https://support.microsoft.com/en-gb/windows/experience/startup-boot/configure-startup-applications-in-windows).
 
@@ -70,6 +70,23 @@ dotnet publish src/BackboneXInput.Tray -c Release -r win-x64 --self-contained tr
 `build.ps1 -Publish` esegue restore/build/test/publish e interrompe su errore. I test sono un eseguibile autonomo senza framework esterno; **`dotnet test` non li esegue**, usare il comando sopra. Lo stesso script puo essere eseguito da un runner CI Windows.
 
 ## Monitor e mapping
+
+### Nuova finestra guidata
+
+Apri **Mapping guidato** dall'icona vicino all'orologio o usa `MAPPING-GUIDATO.cmd`. Non richiede ViGEmBus per leggere e associare il Backbone.
+
+1. Scegli il Backbone fisico nell'elenco e, se necessario, premi **Aggiorna**. Non scegliere un controller virtuale.
+2. Per ogni passo rilascia tutti i comandi, lascia le levette al centro e premi **Rileva comando**.
+3. Per un secondo non toccare nulla: viene rilevata la posizione di riposo. Poi segui il testo grande e il disegno, che evidenzia il comando: premilo e tienilo per quattro secondi, fino alla fine della barra. Per LT/RT premi a fondo; per L3/R3 premi la levetta come un pulsante.
+4. Per gli assi delle levette la guida chiede prima destra/alto e poi la direzione opposta, in due momenti separati. La freccia nel disegno cambia direzione.
+5. Dopo la rilevazione puoi provare ancora il comando e vedere il valore in tempo reale. Premi **Conferma e avanti**, oppure **Riprova**. **Indietro** permette di correggere un passo precedente.
+6. Al termine verifica la tabella dei venti comandi. Un doppio clic su una riga permette di rifarla. Premi **Salva mapping** soltanto quando hai finito: il vecchio JSON resta intatto fino al salvataggio e viene conservato come `.bak`.
+
+La guida segnala pressioni multiple, tasti non rilasciati, diagonali del D-pad, movimenti troppo piccoli e direzioni opposte non rilevate. Se il Backbone si scollega, ricollega lo stesso dispositivo e ripeti il passo. Per cambiare controller o porta con nuovo GUID, chiudi e riapri la guida. Il disegno rappresenta i comandi Xbox di destinazione, non un report HID o una fotografia del tuo modello: non definisce numeri di pulsante Backbone.
+
+**Annulla** o la chiusura della finestra non salvano il nuovo mapping. Se hai gia confermato alcuni passi, la finestra chiede se vuoi chiudere senza salvare. La configurazione preesistente, le deadzone e la frequenza rimangono disponibili; le associazioni vengono rifatte nella nuova procedura.
+
+### Monitor e wizard console
 
 `monitor` mostra ogni 100 ms tutti gli slot raw DirectInput, normalizzazione nominale -1..1, POV, pulsanti premuti e report Xbox normalizzato con calibrazione/deadzone. La lettura resta a 200 Hz; la visualizzazione non e un registro di ogni transizione brevissima. La numerazione pulsanti e `indice JSON / numero joy.cpl`: ad esempio `0/1` indica lo stesso pulsante. Gli indici JSON sono sempre da zero.
 
@@ -116,6 +133,8 @@ Assi standard: 0=X, 1=Y, 2=Z, 3=RotationX, 4=RotationY, 5=RotationZ, 6=Slider0, 
 
 Il loop e sincrono su un solo thread, usa scadenze monotone, una richiesta temporanea di risoluzione timer Windows 1 ms e attese cancellabili. Non usa busy spinning. Ogni cinque secondi registra frequenza **effettiva** e cicli in ritardo: 200 Hz e un obiettivo di campionamento, non una promessa di latenza USB o scheduling. Il monitor puo essere piu lento a causa della console. Il mutex impedisce due `run` contemporanei nella stessa sessione Windows.
 
+La v0.2.0 usa per DirectInput una finestra invisibile appartenente al processo, creata e distrutta sul thread di lettura. Rispetta il [requisito Microsoft sul livello cooperativo](https://learn.microsoft.com/previous-versions/windows/desktop/ee417921(v=vs.85)), sostituendo l'handle del desktop usato nella prima versione.
+
 ## Doppio input: HidHide, solo su tua scelta
 
 Se il gioco vede sia Backbone sia Xbox virtuale e produce doppi comandi, puoi scegliere di installare HidHide. L'app non ne modifica mai configurazione o whitelist.
@@ -158,4 +177,4 @@ Non e implementata la vibrazione verso il Backbone, perche non conosciamo il suo
 
 ## Struttura e verifiche
 
-`src/BackboneXInput.Core`: JSON, validazione, normalizzazione, conversione e ciclo di vita dell'output indipendenti da Windows. `src/BackboneXInput`: console, DirectInput, wizard, logging e ViGEm. `src/BackboneXInput.Tray`: icona, menu, avvio Windows e gestione del bridge in background. `tests`: controlli automatici del core. `windows-x64`: pubblicazione autonoma quando presente. Vedi `VERIFICATION.md` per i controlli eseguiti nella consegna e quelli ancora da effettuare sul PC.
+`src/BackboneXInput.Core`: JSON, validazione, normalizzazione, conversione, ciclo di vita dell'output e fasi di acquisizione del mapping indipendenti da Windows. `src/BackboneXInput`: console, DirectInput, wizard, logging e ViGEm. `src/BackboneXInput.Tray`: icona, menu, avvio Windows, gestione del bridge e finestra di mapping guidato. `tests`: controlli automatici del core. `windows-x64`: pubblicazione autonoma quando presente. Vedi `VERIFICATION.md` per i controlli eseguiti nella consegna e quelli ancora da effettuare sul PC.

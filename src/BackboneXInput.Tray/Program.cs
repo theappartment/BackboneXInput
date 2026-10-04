@@ -6,7 +6,7 @@ namespace BackboneXInput.Tray;
 internal static class Program
 {
     [STAThread]
-    private static void Main()
+    private static void Main(string[] args)
     {
         using var single = new Mutex(false, "Local\\BackboneXInput.Tray");
         bool owns;
@@ -16,7 +16,7 @@ internal static class Program
         try
         {
             ApplicationConfiguration.Initialize();
-            using var context = new TrayContext();
+            using var context = new TrayContext(args.Contains("--mapping"));
             Application.Run(context);
         }
         catch (Exception ex) { MessageBox.Show(ex.Message, "BackboneXInput", MessageBoxButtons.OK, MessageBoxIcon.Error); }
@@ -39,12 +39,12 @@ internal sealed class TrayContext : ApplicationContext
     private bool toolOpen;
     private bool quitting;
 
-    public TrayContext()
+    public TrayContext(bool openMapping = false)
     {
         _ = dispatcher.Handle;
         menu.Items.Add(state);
         menu.Items.Add(new ToolStripSeparator());
-        AddTool("Mapping Wizard", "wizard");
+        menu.Items.Add("Mapping guidato", null, async (_, _) => await RunMapping());
         AddTool("Seleziona controller", "select");
         AddTool("Input Monitor", "monitor");
         AddTool("Diagnostica", "diagnose");
@@ -55,8 +55,9 @@ internal sealed class TrayContext : ApplicationContext
         menu.Items.Add("Esci", null, async (_, _) => await Quit());
         menu.Opening += (_, _) => RefreshStartup();
         icon = new NotifyIcon { Icon = SystemIcons.Application, Text = "BackboneXInput", ContextMenuStrip = menu, Visible = true };
-        icon.DoubleClick += (_, _) => MessageBox.Show(state.Text, "BackboneXInput");
+        icon.DoubleClick += async (_, _) => await RunMapping();
         StartWorker();
+        if (openMapping) dispatcher.BeginInvoke((Action)(async () => await RunMapping()));
     }
 
     private void StartWorker()
@@ -98,6 +99,22 @@ internal sealed class TrayContext : ApplicationContext
 
     private void AddTool(string text, string command)
         => menu.Items.Add(text, null, async (_, _) => await RunTool(command));
+
+    private async Task RunMapping()
+    {
+        if (toolOpen || quitting) return;
+        toolOpen = true;
+        try
+        {
+            await StopWorker();
+            state.Text = "Mapping guidato in corso";
+            menu.Enabled = false;
+            using var wizard = new MappingForm(configPath);
+            wizard.ShowDialog();
+        }
+        catch (Exception ex) { MessageBox.Show(ex.Message, "Mapping", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        finally { menu.Enabled = true; toolOpen = false; if (!quitting) StartWorker(); }
+    }
 
     private async Task StopWorker()
     {
