@@ -1,0 +1,9 @@
+{
+  "SchemaVersion": 1,
+  "DeviceNameContains": "Backbone One",
+  "DeviceInstanceGuid": null,
+  "PollingHz": 200,
+  "LeftStickDeadzone": 0.12,
+  "RightStickDeadzone": 0.12,
+  "Mappings": {}
+}

@@ -1,0 +1,9 @@
+**/bin/
+**/obj/
+windows-x64/
+*.log
+*.bak
+*.tmp
+.DS_Store
+*.zip
+config.json

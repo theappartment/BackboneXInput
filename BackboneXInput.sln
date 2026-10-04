@@ -1,0 +1,50 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{2037E5F2-5866-44B0-8605-5BB6AE6B12F5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BackboneXInput.Core", "src\BackboneXInput.Core\BackboneXInput.Core.csproj", "{126EF1D7-4590-45F1-B50F-8D7E2A440DD2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BackboneXInput", "src\BackboneXInput\BackboneXInput.csproj", "{7D3413CC-2117-46D0-9E99-86758C49684E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{47D27A22-65B3-4948-A04A-6DAEB1FE370C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BackboneXInput.Tests", "tests\BackboneXInput.Tests\BackboneXInput.Tests.csproj", "{7BA6D24C-62C7-4E61-AB3B-87B712107A2A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BackboneXInput.Tray", "src\BackboneXInput.Tray\BackboneXInput.Tray.csproj", "{3D588F6A-9211-47DC-885D-03F5E2DACB28}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{126EF1D7-4590-45F1-B50F-8D7E2A440DD2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{126EF1D7-4590-45F1-B50F-8D7E2A440DD2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{126EF1D7-4590-45F1-B50F-8D7E2A440DD2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{126EF1D7-4590-45F1-B50F-8D7E2A440DD2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7D3413CC-2117-46D0-9E99-86758C49684E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D3413CC-2117-46D0-9E99-86758C49684E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7D3413CC-2117-46D0-9E99-86758C49684E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D3413CC-2117-46D0-9E99-86758C49684E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7BA6D24C-62C7-4E61-AB3B-87B712107A2A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7BA6D24C-62C7-4E61-AB3B-87B712107A2A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7BA6D24C-62C7-4E61-AB3B-87B712107A2A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7BA6D24C-62C7-4E61-AB3B-87B712107A2A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3D588F6A-9211-47DC-885D-03F5E2DACB28}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D588F6A-9211-47DC-885D-03F5E2DACB28}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D588F6A-9211-47DC-885D-03F5E2DACB28}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D588F6A-9211-47DC-885D-03F5E2DACB28}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{126EF1D7-4590-45F1-B50F-8D7E2A440DD2} = {2037E5F2-5866-44B0-8605-5BB6AE6B12F5}
+		{7D3413CC-2117-46D0-9E99-86758C49684E} = {2037E5F2-5866-44B0-8605-5BB6AE6B12F5}
+		{7BA6D24C-62C7-4E61-AB3B-87B712107A2A} = {47D27A22-65B3-4948-A04A-6DAEB1FE370C}
+		{3D588F6A-9211-47DC-885D-03F5E2DACB28} = {2037E5F2-5866-44B0-8605-5BB6AE6B12F5}
+	EndGlobalSection
+EndGlobal
