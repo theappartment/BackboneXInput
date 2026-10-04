@@ -7,14 +7,19 @@ internal static class Wizard
 {
     public static void Run(DirectInputSource source, AppConfig config, string path, CancellationToken token)
     {
-        Console.WriteLine("Mapping: indici JSON da 0; pulsanti monitor anche da 1 come joy.cpl. Ctrl+C annulla senza salvare.");
+        Console.WriteLine("Mapping: indici JSON da 0; pulsanti monitor anche da 1 come joy.cpl. Ctrl+C annulla senza salvare. Premi s e Invio per saltare un comando.");
         config.DeviceInstanceGuid = source.Selected!.InstanceGuid;
         foreach (var control in Enum.GetValues<Control>())
         {
             while (true)
             {
                 Console.WriteLine($"\n{control}: rilascia tutti i comandi, centra gli stick, poi premi Invio.");
-                ReadLine(token);
+                if (ReadLine(token).Trim().Equals("s", StringComparison.OrdinalIgnoreCase))
+                {
+                    config.SkipControl(control);
+                    Console.WriteLine(control + " saltato: restera disattivato.");
+                    break;
+                }
                 var baseline = Capture(source, 0.5, token).Last();
                 Binding binding;
                 if (control >= Control.LeftX)
@@ -43,13 +48,13 @@ internal static class Wizard
                 Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(binding, ConfigStore.Options));
                 Console.WriteLine("Confermi? Invio = si; r = ripeti.");
                 if (ReadLine(token).Trim().Equals("r", StringComparison.OrdinalIgnoreCase)) continue;
-                config.Mappings[control] = binding;
+                config.SetMapping(control, binding);
                 break;
             }
         }
         config.Validate(true);
-        if (config.Mappings[Control.LT].Kind == InputKind.Axis && config.Mappings[Control.RT].Kind == InputKind.Axis
-            && config.Mappings[Control.LT].Index == config.Mappings[Control.RT].Index)
+        if (config.Mappings.TryGetValue(Control.LT, out var lt) && config.Mappings.TryGetValue(Control.RT, out var rt)
+            && lt.Kind == InputKind.Axis && rt.Kind == InputKind.Axis && lt.Index == rt.Index)
             Console.WriteLine("LT e RT condividono un asse: DirectInput potrebbe non rappresentarli entrambi premuti. Verifica nel monitor.");
         if (File.Exists(path)) File.Copy(path, path + ".bak", true);
         ConfigStore.Save(path, config);

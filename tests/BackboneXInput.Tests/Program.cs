@@ -98,6 +98,37 @@ var wrong = Ready(Control.RightX); Feed(wrong, right, 1, 4); Feed(wrong, right, 
 Assert(wrong.Stage == CaptureStage.Failed, "same stick direction twice rejected");
 var empty = Ready(Control.A); Feed(empty, Rest(), 1, 4);
 Assert(empty.Stage == CaptureStage.Failed, "no input detected prompts retry");
+AppConfig AllMapped()
+{
+    var c = new AppConfig();
+    foreach (var control in Enum.GetValues<Control>())
+        c.SetMapping(control, new Binding { Kind = control >= Control.LeftX ? InputKind.Axis : InputKind.Button, Index = 0 });
+    return c;
+}
+var optional = AllMapped(); optional.SkipControl(Control.Menu); optional.SkipControl(Control.View); optional.Validate(true);
+Assert(optional.ResolvedCount == 20 && optional.Mappings.Count == 18, "explicit skip permits complete profile without Menu/View");
+var physical = Rest(); physical.Buttons[0] = true;
+var optionalReport = Mapping.Convert(physical, optional);
+Assert(optionalReport.Buttons.Contains(Control.A) && !optionalReport.Buttons.Contains(Control.Menu) && !optionalReport.Buttons.Contains(Control.View), "skipped Menu/View neutral while mapped controls work");
+optional.SkipControl(Control.LT); optional.SkipControl(Control.LeftX); optional.SkipControl(Control.LeftY); optional.Validate(true);
+optionalReport = Mapping.Convert(physical, optional);
+Assert(optionalReport.LT == 0 && optionalReport.LeftX == 0 && optionalReport.LeftY == 0 && optionalReport.RT == 255, "skipped trigger/stick neutral without disabling other controls");
+var hole = AllMapped(); hole.Mappings.Remove(Control.Menu); Reject(() => hole.Validate(true), "unreviewed missing mapping still rejected");
+var overlap = AllMapped(); overlap.SkippedControls.Add(Control.View); Reject(() => overlap.Validate(), "mapped and skipped simultaneously rejected");
+var unknownSkip = new AppConfig(); unknownSkip.SkippedControls.Add((Control)999); Reject(() => unknownSkip.Validate(), "unknown skipped control rejected");
+var noneMapped = new AppConfig { SkippedControls = Enum.GetValues<Control>().ToHashSet() }; Reject(() => noneMapped.Validate(true), "all skipped profile cannot create useless Xbox target");
+try
+{
+    ConfigStore.Save(path, optional); var restored = ConfigStore.Load(path); restored.Validate(true);
+    Assert(restored.SkippedControls.SetEquals(optional.SkippedControls) && !restored.Mappings.ContainsKey(Control.View), "JSON retains explicit skips and absent bindings");
+}
+finally { File.Delete(path); }
+var oldJson = System.Text.Json.Nodes.JsonNode.Parse(System.Text.Json.JsonSerializer.Serialize(AllMapped(), ConfigStore.Options))!.AsObject();
+oldJson.Remove("SkippedControls");
+var oldConfig = System.Text.Json.JsonSerializer.Deserialize<AppConfig>(oldJson.ToJsonString(), ConfigStore.Options)!;
+oldConfig.Validate(true); Assert(oldConfig.SkippedControls.Count == 0, "older full profiles remain compatible");
+optional.SetMapping(Control.Menu, new Binding { Kind = InputKind.Button, Index = 0 }); optional.Validate(true);
+Assert(!optional.SkippedControls.Contains(Control.Menu) && Mapping.Convert(physical, optional).Buttons.Contains(Control.Menu), "remapping skipped control reactivates it");
 Console.WriteLine($"{count} tests passed.");
 
 sealed class FakeOutput(Action dispose) : IVirtualOutput<XboxReport>

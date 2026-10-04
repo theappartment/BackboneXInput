@@ -30,6 +30,20 @@ public sealed class AppConfig
     public double LeftStickDeadzone { get; set; } = 0.12;
     public double RightStickDeadzone { get; set; } = 0.12;
     public Dictionary<Control, Binding> Mappings { get; set; } = new();
+    public HashSet<Control> SkippedControls { get; set; } = new();
+    [JsonIgnore] public int ResolvedCount => Mappings.Count + SkippedControls.Count;
+
+    public void SetMapping(Control control, Binding binding)
+    {
+        SkippedControls.Remove(control);
+        Mappings[control] = binding;
+    }
+
+    public void SkipControl(Control control)
+    {
+        Mappings.Remove(control);
+        SkippedControls.Add(control);
+    }
 
     public void Validate(bool complete = false)
     {
@@ -40,6 +54,9 @@ public sealed class AppConfig
         CheckUnit(LeftStickDeadzone, nameof(LeftStickDeadzone), false);
         CheckUnit(RightStickDeadzone, nameof(RightStickDeadzone), false);
         if (Mappings is null) throw new InvalidDataException("Mappings mancante.");
+        if (SkippedControls is null || SkippedControls.Any(c => !Enum.IsDefined(c)))
+            throw new InvalidDataException("SkippedControls non valido.");
+        if (SkippedControls.Any(Mappings.ContainsKey)) throw new InvalidDataException("Un comando non puo essere sia associato sia saltato.");
         foreach (var (control, b) in Mappings)
         {
             if (!Enum.IsDefined(control) || b is null || !Enum.IsDefined(b.Kind)) throw new InvalidDataException("Mapping sconosciuto.");
@@ -60,8 +77,9 @@ public sealed class AppConfig
         }
         if (complete)
         {
-            var missing = Enum.GetValues<Control>().Where(c => !Mappings.ContainsKey(c)).ToArray();
+            var missing = Enum.GetValues<Control>().Where(c => !Mappings.ContainsKey(c) && !SkippedControls.Contains(c)).ToArray();
             if (missing.Length > 0) throw new InvalidDataException("Mapping incompleto: " + string.Join(", ", missing));
+            if (Mappings.Count == 0) throw new InvalidDataException("Associa almeno un comando prima di avviare il bridge.");
         }
     }
 

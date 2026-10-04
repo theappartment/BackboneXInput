@@ -1,6 +1,6 @@
 # BackboneXInput
 
-[Scarica il pacchetto Windows x64 con mapping guidato](https://github.com/theappartment/BackboneXInput/releases/tag/v0.2.0) oppure consulta [tutte le release](https://github.com/theappartment/BackboneXInput/releases). La release e preliminare: build e test automatici verificati, prova con hardware/driver/interfaccia Windows ancora necessaria.
+[Scarica il pacchetto Windows x64 con mapping guidato e Salta](https://github.com/theappartment/BackboneXInput/releases/tag/v0.3.0) oppure consulta [tutte le release](https://github.com/theappartment/BackboneXInput/releases). La release e preliminare: build e test automatici verificati, prova con hardware/driver/interfaccia Windows ancora necessaria.
 
 App Windows C#/.NET con icona vicino all'orologio e strumenti console: legge il controller gia riconosciuto da `joy.cpl` con DirectInput e trasmette i comandi a un Xbox 360 virtuale tramite ViGEmBus. Non installa driver, non modifica HidHide e non nasconde dispositivi. Nessun VID/PID o mapping Backbone e preimpostato.
 
@@ -82,6 +82,8 @@ Apri **Mapping guidato** dall'icona vicino all'orologio o usa `MAPPING-GUIDATO.c
 5. Dopo la rilevazione puoi provare ancora il comando e vedere il valore in tempo reale. Premi **Conferma e avanti**, oppure **Riprova**. **Indietro** permette di correggere un passo precedente.
 6. Al termine verifica la tabella dei venti comandi. Un doppio clic su una riga permette di rifarla. Premi **Salva mapping** soltanto quando hai finito: il vecchio JSON resta intatto fino al salvataggio e viene conservato come `.bak`.
 
+**Salta** permette di proseguire senza associare il comando corrente, anche dopo un errore di rilevazione. Puoi saltare Menu/Start, View/Select o qualsiasi altro tasto, trigger o asse che non hai o non vuoi usare. Non occorre simulare la pressione di un tasto inesistente. Il riepilogo mostra **Saltato (disattivato)**; quel comando resta neutro nell'Xbox virtuale. Per aggiungerlo prima di salvare, fai doppio clic sulla sua riga. Se cambi idea su un comando gia associato, torna indietro e premi Salta: la vecchia associazione del passo viene rimossa. Il salvataggio richiede almeno un comando associato, e ciascun altro comando deve essere associato o esplicitamente saltato.
+
 La guida segnala pressioni multiple, tasti non rilasciati, diagonali del D-pad, movimenti troppo piccoli e direzioni opposte non rilevate. Se il Backbone si scollega, ricollega lo stesso dispositivo e ripeti il passo. Per cambiare controller o porta con nuovo GUID, chiudi e riapri la guida. Il disegno rappresenta i comandi Xbox di destinazione, non un report HID o una fotografia del tuo modello: non definisce numeri di pulsante Backbone.
 
 **Annulla** o la chiusura della finestra non salvano il nuovo mapping. Se hai gia confermato alcuni passi, la finestra chiede se vuoi chiudere senza salvare. La configurazione preesistente, le deadzone e la frequenza rimangono disponibili; le associazioni vengono rifatte nella nuova procedura.
@@ -98,13 +100,15 @@ Il wizard esegue A/B/X/Y, LB/RB, LT/RT, L3/R3, quattro direzioni D-pad, Menu/Vie
 2. Premi solo il comando richiesto per la finestra di quattro secondi. Per trigger, premi a fondo. Per stick, tieni la direzione indicata fino alla richiesta della direzione opposta.
 3. Verifica l'input rilevato e conferma con Invio, oppure `r` per ripetere.
 
+Anche nel wizard console puoi saltare: alla richiesta iniziale del comando scrivi `s` e premi Invio. Il comando restera disattivato.
+
 Il wizard puo rilevare pulsanti, POV cardinali o assi. Per LT/RT preferisce un asse se presente, altrimenti salva un trigger digitale 0/255. Stick X positivo = destra; Y positivo = alto come Xbox. Range asimmetrici e inversione sono ricavati dalle estremita misurate. Il risultato e salvato solo al termine; il file precedente diventa `.bak`. Ctrl+C durante una cattura annulla. Durante una richiesta di testo, premi anche Invio per sbloccare la console dopo Ctrl+C. In caso di scollegamento durante il wizard, riconnetti e riavvialo; il vecchio file resta intatto.
 
 Il rilevamento propone il segnale piu evidente; non puo sapere il significato fisico di un input. Premi un solo comando, controlla il JSON mostrato e conferma con attenzione. Dopo il wizard controlla nel monitor tutte le direzioni, i trigger e le diagonali. Se LT/RT condividono un asse, DirectInput potrebbe perderne la pressione simultanea: il software non puo ricostruire due valori indipendenti da uno solo. In quel caso occorre verificare il report HID reale prima di aggiungere un backend HID specifico.
 
 ## Configurazione JSON
 
-Percorso predefinito: `%LOCALAPPDATA%\BackboneXInput\config.json`. `init` crea un file vuoto senza sovrascrivere. Ogni comando accetta `--config "C:\percorso\config.json"`. `config.unmapped.json` e un modello intenzionalmente privo di mapping, quindi `run` lo rifiuta finche il wizard non ha completato tutti i controlli.
+Percorso predefinito: `%LOCALAPPDATA%\BackboneXInput\config.json`. `init` crea un file vuoto senza sovrascrivere. Ogni comando accetta `--config "C:\percorso\config.json"`. `config.unmapped.json` e un modello intenzionalmente privo di mapping, quindi `run` lo rifiuta finche i comandi non sono stati associati o esplicitamente saltati, con almeno un comando associato.
 
 | Campo | Significato |
 | --- | --- |
@@ -113,6 +117,7 @@ Percorso predefinito: `%LOCALAPPDATA%\BackboneXInput\config.json`. `init` crea u
 | `PollingHz` | 125..250, default 200 |
 | `LeftStickDeadzone`, `RightStickDeadzone` | Deadzone radiale 0..meno di 1; tipicamente 0.08..0.15 |
 | `Mappings` | Chiavi: A/B/X/Y/LB/RB/LT/RT/L3/R3/Up/Down/Left/Right/Menu/View/LeftX/LeftY/RightX/RightY |
+| `SkippedControls` | Elenco dei comandi saltati, ad esempio `["Menu", "View"]`; non devono comparire anche in Mappings |
 | `Kind` | `Button`, `Axis`, `Pov` |
 | `Index` | Pulsante 0..127, asse 0..7, POV 0..3 |
 | `Min`, `Center`, `Max`, `Invert` | Calibrazione stick e inversione; Min < Center < Max |
@@ -121,6 +126,8 @@ Percorso predefinito: `%LOCALAPPDATA%\BackboneXInput\config.json`. `init` crea u
 | `PovAngle` | 0 alto, 9000 destra, 18000 basso, 27000 sinistra; diagonali attivano entrambe le direzioni vicine |
 
 Assi standard: 0=X, 1=Y, 2=Z, 3=RotationX, 4=RotationY, 5=RotationZ, 6=Slider0, 7=Slider1. Sono nomi DirectInput, **non corrispondenze Backbone**. Non copiare un mapping di un dispositivo differente. Campi JSON sconosciuti, indici fuori range, valori non finiti, calibrazione degenerata e configurazioni incomplete vengono rifiutati. Modifica il JSON a programma fermo, poi riavvia: non c'e ricaricamento automatico.
+
+I profili completi delle versioni precedenti continuano a funzionare: SkippedControls e facoltativo e per impostazione predefinita vuoto. Un comando assente sia da Mappings sia da SkippedControls resta un errore, per evitare buchi accidentali. Dopo aver salvato con la v0.3.0 usa la nuova app per leggere il profilo: le vecchie versioni non riconoscono il nuovo campo JSON.
 
 ## Verifica Windows, joy.cpl e giochi
 

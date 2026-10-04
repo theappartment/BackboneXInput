@@ -29,6 +29,7 @@ internal sealed class MappingForm : Form
     private readonly Button retry = Button("Riprova", 100);
     private readonly Button confirm = Button("Conferma e avanti", 165);
     private readonly Button previous = Button("Indietro", 100);
+    private readonly Button skip = Button("Salta", 100);
     private readonly Button save = Button("Salva mapping", 150);
     private readonly Button cancel = Button("Annulla", 100);
     private MappingCapture capture = new(controls[0]);
@@ -42,6 +43,7 @@ internal sealed class MappingForm : Form
         this.path = path;
         config = File.Exists(path) ? ConfigStore.Load(path) : new AppConfig();
         config.Mappings.Clear();
+        config.SkippedControls.Clear();
         Text = "BackboneXInput - Mapping guidato";
         Font = new Font("Segoe UI", 10);
         BackColor = Color.White;
@@ -77,7 +79,7 @@ internal sealed class MappingForm : Form
         guide.Controls.Add(countdown, 0, 5); guide.Controls.Add(detail, 0, 6);
         body.Controls.Add(guide, 1, 0); root.Controls.Add(body, 0, 1); root.Controls.Add(progress, 0, 2);
         var actions = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, WrapContents = false, Padding = new Padding(0, 8, 0, 0) };
-        foreach (var button in new[] { cancel, save, confirm, start, retry, previous }) actions.Controls.Add(button);
+        foreach (var button in new[] { cancel, save, confirm, start, retry, skip, previous }) actions.Controls.Add(button);
         root.Controls.Add(actions, 0, 3); Controls.Add(root);
         CancelButton = cancel;
         cancel.Click += (_, _) => Close();
@@ -85,6 +87,7 @@ internal sealed class MappingForm : Form
         start.Click += (_, _) => BeginCapture();
         retry.Click += (_, _) => ShowStep();
         confirm.Click += (_, _) => Confirm();
+        skip.Click += (_, _) => { config.SkipControl(controls[index]); Advance(); };
         previous.Click += (_, _) => { if (index > 0) { index--; ShowStep(); } };
         summary.DoubleClick += (_, _) =>
         {
@@ -125,10 +128,11 @@ internal sealed class MappingForm : Form
         heading.Text = ControlName(controls[index]);
         picture.Target = controls[index]; picture.Stage = CaptureStage.Idle; picture.Visible = true; picture.Invalidate();
         summary.Visible = false;
-        instruction.Text = "Rilascia tutti i tasti e i grilletti. Lascia entrambe le levette al centro.\nPoi premi Rileva comando.";
+        instruction.Text = "Rilascia i tasti e centra le levette, poi premi Rileva comando.\nSe questo comando non c'e sul controller, premi Salta.";
         status.ForeColor = Color.FromArgb(55, 65, 75);
         status.Text = "Pronto per la rilevazione"; detail.Text = ""; countdown.Value = 0;
         start.Visible = true; start.Enabled = true; retry.Visible = false; confirm.Visible = false; save.Visible = false;
+        skip.Visible = true;
         previous.Enabled = index > 0;
         AcceptButton = start;
         UpdateSteps();
@@ -217,7 +221,12 @@ internal sealed class MappingForm : Form
     private void Confirm()
     {
         if (capture.Stage != CaptureStage.Review || capture.Result is null) return;
-        config.Mappings[controls[index]] = capture.Result;
+        config.SetMapping(controls[index], capture.Result);
+        Advance();
+    }
+
+    private void Advance()
+    {
         index++;
         if (index < controls.Length) { ShowStep(); return; }
         timer.Stop(); device.Disconnect(); connected = false;
@@ -227,22 +236,25 @@ internal sealed class MappingForm : Form
         for (var i = 0; i < controls.Length; i++)
         {
             var row = new ListViewItem(ControlName(controls[i])) { Tag = i };
-            row.SubItems.Add(Description(config.Mappings[controls[i]])); summary.Items.Add(row);
+            row.SubItems.Add(config.Mappings.TryGetValue(controls[i], out var binding) ? Description(binding) : "Saltato (disattivato)"); summary.Items.Add(row);
         }
         summary.Visible = true;
         instruction.Text = "Controlla il riepilogo e premi Salva mapping.\nPer rifare un comando, fai doppio clic sulla sua riga.";
         detail.Text = ""; status.Text = "Pronto per salvare";
-        if (config.Mappings[Control.LT].Kind == InputKind.Axis && config.Mappings[Control.RT].Kind == InputKind.Axis && config.Mappings[Control.LT].Index == config.Mappings[Control.RT].Index)
+        if (config.Mappings.TryGetValue(Control.LT, out var lt) && config.Mappings.TryGetValue(Control.RT, out var rt)
+            && lt.Kind == InputKind.Axis && rt.Kind == InputKind.Axis && lt.Index == rt.Index)
             status.Text = "LT e RT condividono un asse: verifica anche la pressione simultanea nel monitor.";
         start.Visible = false; confirm.Visible = false; retry.Visible = false; save.Visible = true;
+        skip.Visible = false; save.Enabled = config.Mappings.Count > 0;
+        if (!save.Enabled) status.Text = "Associa almeno un comando: fai doppio clic su una riga per rifarlo.";
         previous.Enabled = true; AcceptButton = save;
     }
 
     private void UpdateSteps()
     {
         steps.Items.Clear();
-        foreach (var c in controls) steps.Items.Add((index < controls.Length && c == controls[index] ? "> " : "  ") + (config.Mappings.ContainsKey(c) ? "OK " : "     ") + ControlName(c));
-        progress.Value = config.Mappings.Count;
+        foreach (var c in controls) steps.Items.Add((index < controls.Length && c == controls[index] ? "> " : "  ") + (config.Mappings.ContainsKey(c) ? "OK " : config.SkippedControls.Contains(c) ? "-- " : "     ") + ControlName(c));
+        progress.Value = config.ResolvedCount;
     }
 
     private void Save()
@@ -258,7 +270,7 @@ internal sealed class MappingForm : Form
 
     private void OnWizardClosing(object? sender, FormClosingEventArgs e)
     {
-        if (!saved && config.Mappings.Count > 0 && e.CloseReason == CloseReason.UserClosing)
+        if (!saved && config.ResolvedCount > 0 && e.CloseReason == CloseReason.UserClosing)
             e.Cancel = MessageBox.Show(this, "Chiudere senza salvare il nuovo mapping?", "Mapping non salvato", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes;
     }
 
