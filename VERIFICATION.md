@@ -7,6 +7,7 @@ Data: 4 ottobre 2026. Host di verifica: macOS ARM64. SDK ufficiale Microsoft .NE
 - Restore della soluzione e di tutte le dipendenze NuGet.
 - Build Release della soluzione: **0 errori, 0 avvisi** (warning trattati come errori).
 - **51 test automatici passati**: i 41 controlli precedenti e 10 dedicati ai comandi saltati: profilo completo senza Menu/View, neutralita dei pulsanti saltati, trigger/assi saltati, buchi non dichiarati, conflitto associato/saltato, nome sconosciuto, profilo tutto saltato, roundtrip JSON, compatibilita dei vecchi profili e riattivazione dopo nuova associazione.
+- **6 ulteriori test di regressione (57 totali)** per il cambio di direzione: tutti i quattro comandi delle levette con endpoint asimmetrici e ritardo di reazione, escursioni identiche e rifiuto di un singolo campione spurio. Il vecchio algoritmo sceglieva il precedente endpoint piu distante, producendo erroneamente "Direzione opposta non rilevata". La v0.3.1 filtra prima i campioni nel verso opposto, sia nella guida grafica sia nella console.
 - Publish autonomo **win-x64** della console e della nuova app Tray, con runtime .NET/Windows Forms e dipendenze incluse, riuscito.
 - Ispezione `BackboneXInput.exe`: eseguibile **PE32+ console x86-64 per Windows**.
 - Ispezione `BackboneXInput.Tray.exe`: eseguibile **PE32+ GUI x86-64 per Windows**, senza finestra console all'avvio.

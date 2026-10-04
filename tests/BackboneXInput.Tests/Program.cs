@@ -98,6 +98,25 @@ var wrong = Ready(Control.RightX); Feed(wrong, right, 1, 4); Feed(wrong, right, 
 Assert(wrong.Stage == CaptureStage.Failed, "same stick direction twice rejected");
 var empty = Ready(Control.A); Feed(empty, Rest(), 1, 4);
 Assert(empty.Stage == CaptureStage.Failed, "no input detected prompts retry");
+foreach (var control in new[] { Control.LeftX, Control.LeftY, Control.RightX, Control.RightY })
+{
+    var calibration = new MappingCapture(control); calibration.Start(0);
+    var neutral = Rest(); neutral.Axes[0] = 32767; Feed(calibration, neutral, 0, 1);
+    var first = Rest(); first.Axes[0] = control is Control.LeftY or Control.RightY ? 0 : 65535;
+    var second = Rest(); second.Axes[0] = control is Control.LeftY or Control.RightY ? 60000 : 1000;
+    Feed(calibration, first, 1, 4);
+    for (var i = 0; i <= 10; i++) calibration.Push(i < 4 ? first : second, 5 + 4.0 * i / 10);
+    Assert(calibration.Stage == CaptureStage.Review && calibration.Result?.Index == 0
+        && Mapping.Stick(second.Axes[0], calibration.Result) == -1,
+        $"{control}: opposite endpoint detected despite stronger previous endpoint and reaction delay");
+}
+var tied = Ready(Control.RightX); var tiedFirst = Rest(); tiedFirst.Axes[1] = 60000;
+var tiedSecond = Rest(); tiedSecond.Axes[1] = 5536; Feed(tied, tiedFirst, 1, 4);
+for (var i = 0; i <= 10; i++) tied.Push(i < 3 ? tiedFirst : tiedSecond, 5 + 4.0 * i / 10);
+Assert(tied.Stage == CaptureStage.Review && tied.Result?.Min == 5536, "equal excursions do not select previous direction on tie");
+var spike = Ready(Control.LeftX); Feed(spike, right, 1, 4);
+for (var i = 0; i <= 10; i++) spike.Push(i == 5 ? left : right, 5 + 4.0 * i / 10);
+Assert(spike.Stage == CaptureStage.Failed, "single opposite glitch cannot confirm calibration");
 AppConfig AllMapped()
 {
     var c = new AppConfig();

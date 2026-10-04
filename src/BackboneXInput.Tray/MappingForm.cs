@@ -8,6 +8,7 @@ namespace BackboneXInput.Tray;
 internal sealed class MappingForm : Form
 {
     private static readonly Control[] controls = Enum.GetValues<Control>();
+    private static readonly string[] axisNames = ["X", "Y", "Z", "RX", "RY", "RZ", "S1", "S2"];
     private readonly string path;
     private readonly AppConfig config;
     private readonly MappingDevice device = new();
@@ -166,6 +167,8 @@ internal sealed class MappingForm : Form
             var raw = device.Read();
             capture.Push(raw, clock.Elapsed.TotalSeconds);
             if (capture.Stage != shownStage) RenderStage();
+            if (controls[index] >= Control.LeftX && capture.Stage != CaptureStage.Review)
+                detail.Text = string.Join("  ", raw.Axes.Select((value, i) => $"{axisNames[i]}: {value}"));
             if (capture.Stage is CaptureStage.Neutral or CaptureStage.Positive or CaptureStage.Opposite)
             {
                 var remaining = capture.Remaining(clock.Elapsed.TotalSeconds);

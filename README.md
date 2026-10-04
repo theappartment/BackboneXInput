@@ -1,6 +1,6 @@
 # BackboneXInput
 
-[Scarica il pacchetto Windows x64 con mapping guidato e Salta](https://github.com/theappartment/BackboneXInput/releases/tag/v0.3.0) oppure consulta [tutte le release](https://github.com/theappartment/BackboneXInput/releases). La release e preliminare: build e test automatici verificati, prova con hardware/driver/interfaccia Windows ancora necessaria.
+[Scarica il pacchetto Windows x64 con mapping levette corretto](https://github.com/theappartment/BackboneXInput/releases/tag/v0.3.1) oppure consulta [tutte le release](https://github.com/theappartment/BackboneXInput/releases). La release e preliminare: build e test automatici verificati, prova con hardware/driver/interfaccia Windows ancora necessaria.
 
 App Windows C#/.NET con icona vicino all'orologio e strumenti console: legge il controller gia riconosciuto da `joy.cpl` con DirectInput e trasmette i comandi a un Xbox 360 virtuale tramite ViGEmBus. Non installa driver, non modifica HidHide e non nasconde dispositivi. Nessun VID/PID o mapping Backbone e preimpostato.
 
@@ -79,6 +79,8 @@ Apri **Mapping guidato** dall'icona vicino all'orologio o usa `MAPPING-GUIDATO.c
 2. Per ogni passo rilascia tutti i comandi, lascia le levette al centro e premi **Rileva comando**.
 3. Per un secondo non toccare nulla: viene rilevata la posizione di riposo. Poi segui il testo grande e il disegno, che evidenzia il comando: premilo e tienilo per quattro secondi, fino alla fine della barra. Per LT/RT premi a fondo; per L3/R3 premi la levetta come un pulsante.
 4. Per gli assi delle levette la guida chiede prima destra/alto e poi la direzione opposta, in due momenti separati. La freccia nel disegno cambia direzione.
+
+   Dalla v0.3.1 il rilevamento della direzione opposta ignora la posizione precedente durante il cambio di verso, anche con estremita asimmetriche. I valori raw degli otto assi sono visibili durante la calibrazione e dopo un errore. Se non cambiano muovendo la levetta, verifica dispositivo selezionato e monitor prima di salvare; non assegnare un asse a caso.
 5. Dopo la rilevazione puoi provare ancora il comando e vedere il valore in tempo reale. Premi **Conferma e avanti**, oppure **Riprova**. **Indietro** permette di correggere un passo precedente.
 6. Al termine verifica la tabella dei venti comandi. Un doppio clic su una riga permette di rifarla. Premi **Salva mapping** soltanto quando hai finito: il vecchio JSON resta intatto fino al salvataggio e viene conservato come `.bak`.
 

@@ -32,10 +32,13 @@ internal static class Wizard
                     if (Math.Abs(full - baseline.Axes[index]) < 2048) { Console.WriteLine("Movimento insufficiente. Riprova."); continue; }
                     Console.WriteLine("Ora per 4 secondi porta lo stesso stick completamente nella direzione OPPOSTA.");
                     var negative = Capture(source, 4, token);
-                    var opposite = negative.Select(s => s.Axes[index]).MaxBy(v => Math.Abs(v - baseline.Axes[index]));
                     var center = baseline.Axes[index];
-                    if ((full - (double)center) * (opposite - (double)center) >= 0)
+                    var oppositeSamples = negative.Select(s => s.Axes[index])
+                        .Where(v => (full - (double)center) * (v - (double)center) < 0 && Math.Abs(v - (double)center) >= 2048)
+                        .ToArray();
+                    if (oppositeSamples.Length < Math.Max(2, negative.Count / 5))
                     { Console.WriteLine("Non rilevate le due estremita opposte. Riprova."); continue; }
+                    var opposite = oppositeSamples.MaxBy(v => Math.Abs(v - (double)center));
                     binding = new() { Kind = InputKind.Axis, Index = index, Min = Math.Min(full, opposite), Max = Math.Max(full, opposite), Center = center, Invert = full < center };
                 }
                 else

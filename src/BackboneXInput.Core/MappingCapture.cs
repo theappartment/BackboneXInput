@@ -56,10 +56,14 @@ public sealed class MappingCapture(Control control)
             else Stage = CaptureStage.Review;
             return;
         }
-        var opposite = samples.Select(s => s.Axes[axis]).MaxBy(v => Math.Abs(v - baseline!.Axes[axis]));
         var center = baseline!.Axes[axis];
-        if ((positive - (double)center) * (opposite - (double)center) >= 0 || Math.Abs(opposite - center) < 2048)
+        // Ignore the previous endpoint while the user reacts to the new direction prompt.
+        var oppositeSamples = samples.Select(s => s.Axes[axis])
+            .Where(v => (positive - (double)center) * (v - (double)center) < 0 && Math.Abs(v - (double)center) >= 2048)
+            .ToArray();
+        if (oppositeSamples.Length < Math.Max(2, samples.Count / 5))
         { Fail("Direzione opposta non rilevata. Riprova muovendo la stessa levetta nei due versi."); return; }
+        var opposite = oppositeSamples.MaxBy(v => Math.Abs(v - (double)center));
         Result = new() { Kind = InputKind.Axis, Index = axis, Min = Math.Min(positive, opposite), Max = Math.Max(positive, opposite), Center = center, Invert = positive < center };
         Stage = CaptureStage.Review;
     }
